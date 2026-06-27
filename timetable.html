@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prachi's Week Agent 🤖</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+  :root{--bg:#0d0d14;--card:#13131f;--border:#1e1e30;--accent:#7c6ff7;--accent2:#f77cc2;--green:#4ade80;--yellow:#fbbf24;--red:#f87171;--blue:#60a5fa;--orange:#fb923c;--text:#e8e8f0;--muted:#6b6b8a;}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-serif;min-height:100vh;padding:16px;}
+  header{text-align:center;padding:20px 0 24px;}
+  header h1{font-size:1.7rem;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+  header p{color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:0.72rem;margin-top:5px;}
+  #clock-panel{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;text-align:center;margin-bottom:16px;}
+  #live-time{font-family:'JetBrains Mono',monospace;font-size:2.2rem;font-weight:600;color:var(--accent);letter-spacing:2px;}
+  #live-date{font-size:0.8rem;color:var(--muted);margin-top:4px;}
+  #day-tabs{display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;}
+  #day-tabs::-webkit-scrollbar{display:none;}
+  .day-tab{flex-shrink:0;padding:8px 14px;border-radius:10px;background:var(--card);border:1px solid var(--border);font-size:0.78rem;font-weight:600;cursor:pointer;transition:all 0.2s ease;color:var(--muted);}
+  .day-tab:hover{border-color:var(--accent);color:var(--text);}
+  .day-tab.active{background:rgba(124,111,247,0.15);border-color:var(--accent);color:var(--accent);}
+  .day-tab.today{border-color:var(--accent2);color:var(--accent2);}
+  .day-tab.today.active{background:rgba(247,124,194,0.12);}
+  #current-banner{border-radius:14px;padding:16px 18px;margin-bottom:16px;border:1px solid var(--border);background:var(--card);transition:all 0.3s ease;}
+  #current-banner.active{background:linear-gradient(135deg,rgba(124,111,247,0.12),rgba(247,124,194,0.08));border-color:var(--accent);}
+  #current-banner.break{background:rgba(74,222,128,0.07);border-color:var(--green);}
+  #current-banner.weekend{background:rgba(251,191,36,0.07);border-color:var(--yellow);}
+  #banner-label{font-size:0.68rem;font-family:'JetBrains Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;}
+  #banner-subject{font-size:1.1rem;font-weight:700;}
+  #banner-meta{font-size:0.78rem;color:var(--muted);margin-top:3px;}
+  #time-bar-wrap{margin-top:10px;background:rgba(255,255,255,0.05);border-radius:99px;height:5px;overflow:hidden;}
+  #time-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:99px;transition:width 1s linear;}
+  #time-remaining{font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--accent);margin-top:6px;}
+  .section-title{font-size:0.68rem;font-family:'JetBrains Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;}
+  .slot{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:12px;background:var(--card);border:1px solid var(--border);margin-bottom:7px;transition:all 0.2s ease;}
+  .slot.current{border-color:var(--accent);background:rgba(124,111,247,0.08);}
+  .slot.done{opacity:0.38;}
+  .slot.next{border-color:var(--yellow);background:rgba(251,191,36,0.05);}
+  .slot.lunch{border-color:var(--green);background:rgba(74,222,128,0.05);}
+  .slot-time{font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:var(--muted);min-width:76px;padding-top:2px;line-height:1.4;}
+  .slot-info{flex:1;}
+  .slot-subject{font-size:0.88rem;font-weight:600;line-height:1.3;}
+  .slot-teacher{font-size:0.72rem;color:var(--muted);margin-top:2px;}
+  .slot-badge{font-size:0.62rem;font-family:'JetBrains Mono',monospace;padding:3px 7px;border-radius:99px;font-weight:600;align-self:center;white-space:nowrap;}
+  .badge-now{background:rgba(124,111,247,0.2);color:var(--accent);}
+  .badge-next{background:rgba(251,191,36,0.15);color:var(--yellow);}
+  .badge-done{background:rgba(255,255,255,0.05);color:var(--muted);}
+  .badge-lunch{background:rgba(74,222,128,0.13);color:var(--green);}
+  .badge-lab{background:rgba(96,165,250,0.15);color:var(--blue);}
+  .badge-tut{background:rgba(251,146,60,0.15);color:var(--orange);}
+  #weekend-panel{display:none;text-align:center;padding:30px 20px;background:var(--card);border:1px solid var(--border);border-radius:16px;margin-bottom:16px;}
+  #weekend-panel h2{font-size:1.3rem;margin-bottom:8px;}
+  #weekend-panel p{font-size:0.82rem;color:var(--muted);}
+  #test-bar{background:rgba(251,191,36,0.06);border:1px dashed rgba(251,191,36,0.25);border-radius:12px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  #test-bar label{font-size:0.74rem;color:var(--yellow);font-family:'JetBrains Mono',monospace;}
+  #test-time-input{background:var(--bg);border:1px solid rgba(251,191,36,0.25);color:var(--text);padding:5px 10px;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:0.74rem;width:90px;}
+  #test-btn{background:rgba(251,191,36,0.13);color:var(--yellow);border:none;padding:5px 12px;border-radius:8px;font-size:0.74rem;cursor:pointer;font-family:'Space Grotesk',sans-serif;font-weight:600;}
+  #test-btn:hover{background:rgba(251,191,36,0.22);}
+  #test-reset{font-size:0.68rem;color:var(--muted);cursor:pointer;text-decoration:underline;}
+  #test-mode-label{font-size:0.65rem;color:var(--yellow);opacity:0.7;}
+  #alert-log{margin-top:16px;}
+  .alert-item{display:flex;align-items:center;gap:10px;padding:9px 13px;border-radius:10px;background:var(--card);border:1px solid var(--border);margin-bottom:6px;font-size:0.8rem;animation:slideIn 0.3s ease;}
+  @keyframes slideIn{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);}}
+  .alert-dot{width:6px;height:6px;background:var(--accent2);border-radius:50%;flex-shrink:0;box-shadow:0 0 5px var(--accent2);}
+  .alert-text{flex:1;}
+  .alert-time{font-family:'JetBrains Mono',monospace;font-size:0.62rem;color:var(--muted);}
+
+  /* ---- CHAT ---- */
+  #chat-section{margin-top:20px;}
+  #chat-toggle{width:100%;background:linear-gradient(135deg,rgba(124,111,247,0.15),rgba(247,124,194,0.1));border:1px solid var(--accent);border-radius:14px;padding:14px 18px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;transition:all 0.2s;}
+  #chat-toggle:hover{background:linear-gradient(135deg,rgba(124,111,247,0.22),rgba(247,124,194,0.15));}
+  #chat-toggle-left{display:flex;align-items:center;gap:10px;}
+  #chat-toggle-icon{font-size:1.2rem;}
+  #chat-toggle-text{font-size:0.9rem;font-weight:600;color:var(--accent);}
+  #chat-toggle-sub{font-size:0.7rem;color:var(--muted);margin-top:2px;}
+  #chat-toggle-arrow{font-size:0.8rem;color:var(--muted);transition:transform 0.3s;}
+  #chat-toggle-arrow.open{transform:rotate(180deg);}
+  #chat-box{display:none;margin-top:10px;background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;flex-direction:column;}
+  #chat-box.open{display:flex;}
+  #chat-messages{flex:1;padding:14px;overflow-y:auto;max-height:340px;display:flex;flex-direction:column;gap:10px;}
+  .msg{max-width:85%;padding:10px 13px;border-radius:12px;font-size:0.82rem;line-height:1.5;animation:slideIn 0.2s ease;}
+  .msg.user{align-self:flex-end;background:linear-gradient(135deg,var(--accent),rgba(124,111,247,0.7));color:#fff;border-bottom-right-radius:4px;}
+  .msg.ai{align-self:flex-start;background:#1a1a2e;border:1px solid var(--border);color:var(--text);border-bottom-left-radius:4px;}
+  .msg.ai.typing{color:var(--muted);font-style:italic;}
+  #chat-suggestions{display:flex;gap:6px;padding:0 14px 12px;overflow-x:auto;scrollbar-width:none;}
+  #chat-suggestions::-webkit-scrollbar{display:none;}
+  .suggestion{flex-shrink:0;background:rgba(124,111,247,0.08);border:1px solid rgba(124,111,247,0.2);border-radius:99px;padding:5px 12px;font-size:0.7rem;color:var(--accent);cursor:pointer;white-space:nowrap;transition:all 0.2s;}
+  .suggestion:hover{background:rgba(124,111,247,0.18);border-color:var(--accent);}
+  #chat-input-row{display:flex;gap:8px;padding:12px 14px;border-top:1px solid var(--border);}
+  #chat-input{flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:9px 13px;border-radius:10px;font-family:'Space Grotesk',sans-serif;font-size:0.82rem;outline:none;transition:border-color 0.2s;}
+  #chat-input:focus{border-color:var(--accent);}
+  #chat-input::placeholder{color:var(--muted);}
+  #chat-send{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#fff;padding:9px 16px;border-radius:10px;cursor:pointer;font-size:0.9rem;transition:opacity 0.2s;flex-shrink:0;}
+  #chat-send:hover{opacity:0.85;}
+  #chat-send:disabled{opacity:0.4;cursor:not-allowed;}
+
+  footer{text-align:center;padding:20px 0 6px;font-size:0.68rem;color:var(--muted);font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🤖 Weekly Class Agent</h1>
+  <p>SJCEM · AIML · SE III-1 · Batch 2</p>
+</header>
+
+<div id="clock-panel">
+  <div id="live-time">00:00:00</div>
+  <div id="live-date"></div>
+</div>
+
+<div id="day-tabs"></div>
+
+<div id="current-banner">
+  <div id="banner-label">Loading...</div>
+  <div id="banner-subject">—</div>
+  <div id="banner-meta"></div>
+  <div id="time-bar-wrap"><div id="time-bar" style="width:0%"></div></div>
+  <div id="time-remaining"></div>
+</div>
+
+<div id="weekend-panel">
+  <h2>🎉 No Classes!</h2>
+  <p id="weekend-msg">Enjoy your weekend Prachi 💜</p>
+</div>
+
+<div class="section-title" id="schedule-label">Schedule</div>
+<div id="schedule-list"></div>
+
+<div id="test-bar">
+  <label>⚡ Test</label>
+  <input type="text" id="test-time-input" placeholder="HH:MM" maxlength="5"/>
+  <button id="test-btn" onclick="setTestTime()">Simulate</button>
+  <span id="test-reset" onclick="resetTest()">reset</span>
+  <span id="test-mode-label"></span>
+</div>
+
+<div id="alert-log">
+  <div class="section-title">Alert Log</div>
+  <div id="alert-items"></div>
+</div>
+
+<!-- CHAT SECTION -->
+<div id="chat-section">
+  <div id="chat-toggle" onclick="toggleChat()">
+    <div id="chat-toggle-left">
+      <div id="chat-toggle-icon">💬</div>
+      <div>
+        <div id="chat-toggle-text">Chat with Agent</div>
+        <div id="chat-toggle-sub">Ask about schedule or anything else</div>
+      </div>
+    </div>
+    <div id="chat-toggle-arrow">▼</div>
+  </div>
+
+  <div id="chat-box">
+    <div id="chat-messages">
+      <div class="msg ai">Hey Prachi! 👋 I know your full timetable. Ask me anything — "what's my next class?", "do I have labs today?" or just chat! 💜</div>
+    </div>
+    <div id="chat-suggestions">
+      <div class="suggestion" onclick="sendSuggestion(this)">What's my next class?</div>
+      <div class="suggestion" onclick="sendSuggestion(this)">Today's full schedule?</div>
+      <div class="suggestion" onclick="sendSuggestion(this)">Do I have labs today?</div>
+      <div class="suggestion" onclick="sendSuggestion(this)">When's lunch?</div>
+      <div class="suggestion" onclick="sendSuggestion(this)">What day has least classes?</div>
+      <div class="suggestion" onclick="sendSuggestion(this)">Friday schedule?</div>
+    </div>
+    <div id="chat-input-row">
+      <input type="text" id="chat-input" placeholder="Ask me anything..." onkeydown="if(event.key==='Enter')sendChat()"/>
+      <button id="chat-send" onclick="sendChat()">➤</button>
+    </div>
+  </div>
+</div>
+
+<footer>alerts fire 5 min before each class · built for prachi 💜</footer>
+
+<script>
+const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+const TIMETABLE={
+  1:[
+    {start:"09:00",end:"10:00",subject:"Python (SSL2)",teacher:"TS · Batch 2",type:"lab",emoji:"🐍"},
+    {start:"10:00",end:"11:00",subject:"MCA 202",teacher:"SD",type:"class",emoji:"📗"},
+    {start:"11:00",end:"12:00",subject:"Mentoring",teacher:"Faculty",type:"special",emoji:"🧑‍🏫"},
+    {start:"12:00",end:"13:00",subject:"Lunch Break",teacher:"",type:"lunch",emoji:"🍱"},
+    {start:"13:00",end:"14:00",subject:"DS 201",teacher:"AB",type:"class",emoji:"📘"},
+    {start:"14:00",end:"15:00",subject:"DS (SL) 201 — Lab",teacher:"AB · Batch 2",type:"lab",emoji:"💻"},
+    {start:"15:00",end:"16:00",subject:"UHV 201",teacher:"OZ",type:"class",emoji:"📕"}
+  ],
+  2:[
+    {start:"09:00",end:"10:00",subject:"DBMS 202",teacher:"JT",type:"class",emoji:"🗄️"},
+    {start:"10:00",end:"11:00",subject:"MCA 202",teacher:"SD",type:"class",emoji:"📗"},
+    {start:"11:00",end:"12:00",subject:"UHV 202",teacher:"OZ",type:"class",emoji:"📕"},
+    {start:"12:00",end:"13:00",subject:"Lunch Break",teacher:"",type:"lunch",emoji:"🍱"},
+    {start:"13:00",end:"14:00",subject:"DS 202",teacher:"AB",type:"class",emoji:"📘"},
+    {start:"14:00",end:"15:00",subject:"DBMS (Autocad)",teacher:"JT · Batch 2",type:"lab",emoji:"💻"},
+    {start:"15:00",end:"16:00",subject:"FAI 202",teacher:"AS",type:"class",emoji:"🤖"}
+  ],
+  3:[
+    {start:"09:00",end:"10:00",subject:"DBMS 201",teacher:"JT",type:"class",emoji:"🗄️"},
+    {start:"10:00",end:"11:00",subject:"LAOAI (Tutorial)",teacher:"DP · Batch 2",type:"tutorial",emoji:"📓"},
+    {start:"11:00",end:"12:00",subject:"FAI 202",teacher:"AS",type:"class",emoji:"🤖"},
+    {start:"12:00",end:"13:00",subject:"Lunch Break",teacher:"",type:"lunch",emoji:"🍱"},
+    {start:"13:00",end:"14:00",subject:"MCA 202",teacher:"SD",type:"class",emoji:"📗"},
+    {start:"14:00",end:"15:00",subject:"EEP (PP)",teacher:"PP · Batch 2",type:"tutorial",emoji:"⚡"},
+    {start:"15:00",end:"16:00",subject:"FAI 202",teacher:"AS",type:"class",emoji:"🤖"}
+  ],
+  4:[
+    {start:"09:00",end:"10:00",subject:"MCA 201",teacher:"SD",type:"class",emoji:"📗"},
+    {start:"10:00",end:"11:00",subject:"DS 201",teacher:"AB",type:"class",emoji:"📘"},
+    {start:"11:00",end:"12:00",subject:"LAOAI 201",teacher:"DP",type:"class",emoji:"📓"},
+    {start:"12:00",end:"13:00",subject:"Lunch Break",teacher:"",type:"lunch",emoji:"🍱"},
+    {start:"13:00",end:"14:00",subject:"FAI (SL) 202",teacher:"AS",type:"lab",emoji:"🤖"},
+    {start:"14:00",end:"16:00",subject:"DS — 2hr Lab",teacher:"AB · Batch 2",type:"lab",emoji:"💻"}
+  ],
+  5:[
+    {start:"09:00",end:"10:00",subject:"MCA (SSL2)",teacher:"SD · Batch 2",type:"lab",emoji:"📗"},
+    {start:"11:00",end:"12:00",subject:"LAOAI 201",teacher:"DP",type:"class",emoji:"📓"},
+    {start:"12:00",end:"13:00",subject:"Lunch Break",teacher:"",type:"lunch",emoji:"🍱"},
+    {start:"13:00",end:"14:00",subject:"Python 202",teacher:"TS",type:"class",emoji:"🐍"},
+    {start:"14:00",end:"15:00",subject:"UHV(PV) Tutorial",teacher:"Batch 2",type:"tutorial",emoji:"📕"},
+    {start:"15:00",end:"16:00",subject:"DBMS (SL) 202",teacher:"JT",type:"lab",emoji:"💻"}
+  ]
+};
+
+const ALERT_MINS_BEFORE=5;
+const firedAlerts=new Set();
+let alertLog=[],testTime=null,viewingDay=null,chatOpen=false,chatHistory=[];
+
+function toMins(t){const[h,m]=t.split(":").map(Number);return h*60+m;}
+function getNowMins(){if(testTime!==null)return testTime;const n=new Date();return n.getHours()*60+n.getMinutes()+n.getSeconds()/60;}
+function getTodayDay(){return new Date().getDay();}
+function formatMins(m){const h=Math.floor(m/60),mn=Math.floor(m%60);return h>0?`${h}h ${mn}m`:`${mn}m`;}
+
+function buildTabs(){
+  const c=document.getElementById("day-tabs");c.innerHTML="";
+  const today=getTodayDay();
+  [1,2,3,4,5].forEach(d=>{
+    const t=document.createElement("div");
+    t.className="day-tab"+(d===today?" today":"")+(d===(viewingDay??today)?" active":"");
+    t.textContent=DAYS[d].slice(0,3);
+    t.onclick=()=>{viewingDay=d;tick();};
+    c.appendChild(t);
+  });
+}
+
+function renderSchedule(){
+  const today=getTodayDay(),activeDay=viewingDay??(TIMETABLE[today]?today:1),nowMins=getNowMins(),isToday=activeDay===today;
+  const wp=document.getElementById("weekend-panel"),sl=document.getElementById("schedule-list"),slbl=document.getElementById("schedule-label"),banner=document.getElementById("current-banner");
+  if(!TIMETABLE[activeDay]){
+    wp.style.display="block";
+    document.getElementById("weekend-msg").textContent=today===0?"Enjoy Sunday Prachi 💜":"Enjoy Saturday Prachi 💜";
+    sl.style.display="none";slbl.style.display="none";
+    banner.className="weekend";
+    document.getElementById("banner-label").textContent="🎉 Weekend";
+    document.getElementById("banner-subject").textContent="No classes today!";
+    document.getElementById("banner-meta").textContent="";
+    document.getElementById("time-bar").style.width="100%";
+    document.getElementById("time-remaining").textContent="";
+    return;
+  }
+  wp.style.display="none";sl.style.display="block";slbl.style.display="block";
+  slbl.textContent=`${DAYS[activeDay]} Schedule`;
+  const slots=TIMETABLE[activeDay];
+  let ci=null,ni=null;
+  if(isToday){for(let i=0;i<slots.length;i++){if(nowMins>=toMins(slots[i].start)&&nowMins<toMins(slots[i].end))ci=i;else if(nowMins<toMins(slots[i].start)&&ni===null)ni=i;}}
+  sl.innerHTML="";
+  slots.forEach((s,i)=>{
+    if(s.type==="free")return;
+    const isDone=isToday&&nowMins>=toMins(s.end),isCur=i===ci,isNext=i===ni;
+    const div=document.createElement("div");
+    div.className="slot"+(isCur?" current":isDone?" done":isNext?" next":s.type==="lunch"?" lunch":"");
+    let badge="";
+    if(isCur)badge=`<span class="slot-badge badge-now">NOW</span>`;
+    else if(isNext)badge=`<span class="slot-badge badge-next">NEXT</span>`;
+    else if(isDone)badge=`<span class="slot-badge badge-done">✓</span>`;
+    else if(s.type==="lunch")badge=`<span class="slot-badge badge-lunch">BREAK</span>`;
+    else if(s.type==="lab")badge=`<span class="slot-badge badge-lab">LAB</span>`;
+    else if(s.type==="tutorial")badge=`<span class="slot-badge badge-tut">TUT</span>`;
+    div.innerHTML=`<div class="slot-time">${s.start}<br>${s.end}</div><div class="slot-info"><div class="slot-subject">${s.emoji} ${s.subject}</div>${s.teacher?`<div class="slot-teacher">👤 ${s.teacher}</div>`:""}</div>${badge}`;
+    sl.appendChild(div);
+  });
+  if(!isToday){
+    banner.className="";
+    document.getElementById("banner-label").textContent=`${DAYS[activeDay]}'s Schedule`;
+    document.getElementById("banner-subject").textContent=`${slots.filter(s=>s.type!=="lunch").length} classes`;
+    document.getElementById("banner-meta").textContent="Viewing another day";
+    document.getElementById("time-bar").style.width="0%";
+    document.getElementById("time-remaining").textContent="";
+    return;
+  }
+  if(ci!==null){
+    const s=slots[ci],st=toMins(s.start),en=toMins(s.end),pct=Math.min(100,((nowMins-st)/(en-st))*100);
+    banner.className=s.type==="lunch"?"break":"active";
+    document.getElementById("banner-label").textContent=s.type==="lunch"?"🍱 Lunch Break":"🔴 In Progress";
+    document.getElementById("banner-subject").textContent=`${s.emoji} ${s.subject}`;
+    document.getElementById("banner-meta").textContent=s.teacher?`👤 ${s.teacher} · ${s.start}–${s.end}`:`${s.start}–${s.end}`;
+    document.getElementById("time-bar").style.width=pct+"%";
+    document.getElementById("time-remaining").textContent=`⏱ ${formatMins(en-nowMins)} remaining`;
+  }else if(ni!==null){
+    const s=slots[ni];
+    banner.className="";
+    document.getElementById("banner-label").textContent="⏳ Next Up";
+    document.getElementById("banner-subject").textContent=`${s.emoji} ${s.subject}`;
+    document.getElementById("banner-meta").textContent=`Starts at ${s.start}`;
+    document.getElementById("time-bar").style.width="0%";
+    document.getElementById("time-remaining").textContent=`🕐 in ${formatMins(toMins(s.start)-nowMins)}`;
+  }else{
+    banner.className="break";
+    document.getElementById("banner-label").textContent="✅ All Done";
+    document.getElementById("banner-subject").textContent="No more classes today!";
+    document.getElementById("banner-meta").textContent="Go rest Prachi 🎉";
+    document.getElementById("time-bar").style.width="100%";
+    document.getElementById("time-remaining").textContent="";
+  }
+  if(isToday&&TIMETABLE[today]){
+    TIMETABLE[today].forEach((s,i)=>{
+      if(s.type==="lunch"||s.type==="free")return;
+      const at=toMins(s.start)-ALERT_MINS_BEFORE,key=`${today}-${i}`;
+      if(!firedAlerts.has(key)&&nowMins>=at&&nowMins<toMins(s.start)){firedAlerts.add(key);fireAlert(s);}
+    });
+  }
+}
+
+function fireAlert(slot){
+  const msg=`${slot.emoji} ${slot.subject} starts in ${ALERT_MINS_BEFORE} min! (${slot.start})`;
+  alertLog.unshift({msg,time:new Date().toLocaleTimeString()});
+  renderAlertLog();
+  if(Notification.permission==="granted")new Notification("🔔 Class Alert",{body:msg});
+  if(navigator.vibrate)navigator.vibrate([200,100,200]);
+}
+
+function renderAlertLog(){
+  const c=document.getElementById("alert-items");
+  if(!alertLog.length){c.innerHTML=`<div style="color:var(--muted);font-size:0.76rem;padding:8px 0">No alerts yet — fires ${ALERT_MINS_BEFORE} min before each class 🔔</div>`;return;}
+  c.innerHTML=alertLog.slice(0,6).map(a=>`<div class="alert-item"><div class="alert-dot"></div><span class="alert-text">${a.msg}</span><span class="alert-time">${a.time}</span></div>`).join("");
+}
+
+function setTestTime(){const v=document.getElementById("test-time-input").value.trim();if(/^\d{2}:\d{2}$/.test(v)){testTime=toMins(v);firedAlerts.clear();document.getElementById("test-mode-label").textContent=`@ ${v}`;viewingDay=new Date().getDay()||1;tick();}}
+function resetTest(){testTime=null;viewingDay=null;firedAlerts.clear();document.getElementById("test-time-input").value="";document.getElementById("test-mode-label").textContent="";tick();}
+
+function tick(){
+  const now=new Date(),ts=testTime!==null?(()=>{const h=Math.floor(testTime/60),m=Math.floor(testTime%60);return`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:00`;})():now.toLocaleTimeString();
+  document.getElementById("live-time").textContent=ts;
+  document.getElementById("live-date").textContent=now.toLocaleDateString('en-IN',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  buildTabs();renderSchedule();renderAlertLog();
+}
+
+// ---- CHAT ----
+function toggleChat(){
+  chatOpen=!chatOpen;
+  document.getElementById("chat-box").className=chatOpen?"open":"";
+  document.getElementById("chat-toggle-arrow").className=chatOpen?"open":"";
+  if(chatOpen)setTimeout(()=>document.getElementById("chat-input").focus(),200);
+}
+
+function addMsg(text,role,isTyping=false){
+  const msgs=document.getElementById("chat-messages");
+  const div=document.createElement("div");
+  div.className="msg "+role+(isTyping?" typing":"");
+  div.textContent=text;
+  div.id=isTyping?"typing-indicator":"";
+  msgs.appendChild(div);
+  msgs.scrollTop=msgs.scrollHeight;
+  return div;
+}
+
+function removeTyping(){const t=document.getElementById("typing-indicator");if(t)t.remove();}
+
+function buildScheduleContext(){
+  const today=getTodayDay(),nowMins=getNowMins();
+  const dayNames=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  let ctx=`Today is ${dayNames[today]}. Current time: ${Math.floor(nowMins/60).toString().padStart(2,'0')}:${Math.floor(nowMins%60).toString().padStart(2,'0')}.\n\n`;
+  ctx+="Prachi's full weekly timetable (Batch 2, AIML SE III-1, SJCEM):\n\n";
+  [1,2,3,4,5].forEach(d=>{
+    ctx+=`${dayNames[d]}:\n`;
+    TIMETABLE[d].forEach(s=>{ctx+=`  ${s.start}-${s.end}: ${s.subject} (${s.teacher||"no teacher"}) [${s.type}]\n`;});
+    ctx+="\n";
+  });
+  if(TIMETABLE[today]){
+    const slots=TIMETABLE[today];
+    const cur=slots.find(s=>nowMins>=toMins(s.start)&&nowMins<toMins(s.end));
+    const nxt=slots.find(s=>nowMins<toMins(s.start));
+    if(cur)ctx+=`Currently in: ${cur.subject} (ends ${cur.end})\n`;
+    if(nxt)ctx+=`Next class: ${nxt.subject} at ${nxt.start}\n`;
+  }
+  return ctx;
+}
+
+async function sendChat(){
+  const input=document.getElementById("chat-input");
+  const msg=input.value.trim();
+  if(!msg)return;
+  input.value="";
+  document.getElementById("chat-send").disabled=true;
+  addMsg(msg,"user");
+  chatHistory.push({role:"user",content:msg});
+  addMsg("typing...","ai",true);
+  try{
+    const scheduleCtx=buildScheduleContext();
+    const systemPrompt=`You are Prachi's personal class assistant built into her timetable agent. You know her full weekly schedule at SJCEM (AIML, SE III-1, Batch 2). Be friendly, casual, and use emojis. Keep responses short and helpful. Answer schedule questions using the timetable data provided. For general questions, just be a helpful AI friend. Always address her as Prachi.\n\nSchedule data:\n${scheduleCtx}`;
+    const res=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        model:"claude-sonnet-4-6",
+        max_tokens:1000,
+        system:systemPrompt,
+        messages:chatHistory
+      })
+    });
+    const data=await res.json();
+    const reply=data.content?.[0]?.text||"Oops something went wrong 😅";
+    removeTyping();
+    addMsg(reply,"ai");
+    chatHistory.push({role:"assistant",content:reply});
+    if(chatHistory.length>20)chatHistory=chatHistory.slice(-20);
+  }catch(e){
+    removeTyping();
+    addMsg("Network error 😅 Check your connection!","ai");
+  }
+  document.getElementById("chat-send").disabled=false;
+  input.focus();
+}
+
+function sendSuggestion(el){
+  document.getElementById("chat-input").value=el.textContent;
+  sendChat();
+}
+
+if(Notification.permission==="default")Notification.requestPermission();
+renderAlertLog();tick();setInterval(tick,1000);
+</script>
+</body>
+</html>
