@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weekly Class Agent 🤖</title>
+<style>
+  :root{
+    --bg: #0e0e15;
+    --surface: #17171f;
+    --surface-2: #1f1f2b;
+    --border: #2a2a38;
+    --text: #f0eef7;
+    --muted: #9694ab;
+    --accent: #a78bfa;
+    --accent-strong: #7c3aed;
+    --accent-soft: rgba(167,139,250,0.14);
+    --live: #34d399;
+    --warn: #f59e0b;
+    --radius: 18px;
+    --radius-sm: 12px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);}
+  body{
+    display:flex; justify-content:center;
+    min-height:100vh;
+    padding:20px 14px 60px;
+  }
+  .app{width:100%; max-width:460px;}
+
+  header{text-align:center; margin-bottom:18px;}
+  header h1{font-size:1.5rem; margin:0 0 4px; letter-spacing:.2px;}
+  header .meta{color:var(--muted); font-size:.85rem;}
+
+  .batch-toggle{
+    display:flex; gap:6px; background:var(--surface); border:1px solid var(--border);
+    border-radius:999px; padding:4px; margin:16px 0;
+  }
+  .batch-toggle button{
+    flex:1; border:none; background:transparent; color:var(--muted);
+    padding:9px 0; border-radius:999px; font-size:.88rem; font-weight:600;
+    cursor:pointer; transition:.2s;
+  }
+  .batch-toggle button.active{background:var(--accent-strong); color:#fff;}
+
+  .card{
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius); padding:18px; margin-bottom:14px;
+  }
+
+  .status-card{text-align:center;}
+  .status-card .live-dot{
+    display:inline-block; width:8px; height:8px; border-radius:50%;
+    background:var(--live); margin-right:6px; box-shadow:0 0 8px var(--live);
+  }
+  .status-card .day-label{color:var(--muted); font-size:.82rem; margin-bottom:10px;}
+  .status-card .clock{font-size:2rem; font-weight:700; letter-spacing:1px; font-variant-numeric: tabular-nums;}
+  .status-card .now-label{margin-top:14px; font-size:.8rem; color:var(--muted); text-transform:uppercase; letter-spacing:.6px;}
+  .status-card .now-value{font-size:1.15rem; font-weight:600; margin-top:4px;}
+  .status-card .next-value{font-size:.92rem; color:var(--accent); margin-top:10px;}
+  .status-card .weekend{font-size:1.4rem; margin:8px 0;}
+
+  .btn-row{display:flex; gap:10px; margin:16px 0;}
+  .btn-row button{
+    flex:1; padding:11px 0; border-radius:var(--radius-sm); border:1px solid var(--border);
+    background:var(--surface-2); color:var(--text); font-size:.86rem; font-weight:600; cursor:pointer;
+  }
+  .btn-row button.primary{background:var(--accent-strong); border-color:var(--accent-strong); color:#fff;}
+  .btn-row button:active{transform:scale(0.97);}
+
+  h2.section-title{font-size:1rem; margin:22px 2px 10px; display:flex; align-items:center; gap:6px;}
+
+  .day-block{margin-bottom:10px;}
+  .day-name{font-size:.82rem; color:var(--muted); margin:14px 2px 6px; font-weight:600;}
+  .period{
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm);
+    padding:10px 12px; margin-bottom:7px; font-size:.86rem; display:flex; flex-direction:column; gap:2px;
+  }
+  .period.current{border-color:var(--accent); background:var(--accent-soft);}
+  .period.next{border-color:var(--warn);}
+  .period .time{color:var(--muted); font-size:.76rem;}
+  .period .subj{font-weight:600;}
+  .period .split{display:flex; gap:8px; margin-top:2px;}
+  .period .split div{flex:1; font-size:.78rem; color:var(--muted);}
+  .period .split div b{color:var(--text); font-weight:600;}
+  .no-classes{color:var(--muted); font-size:.86rem; text-align:center; padding:10px;}
+
+  .log-item{font-size:.8rem; color:var(--muted); padding:6px 0; border-bottom:1px dashed var(--border);}
+  .log-item:last-child{border-bottom:none;}
+  .log-empty{color:var(--muted); font-size:.82rem; text-align:center; padding:8px;}
+
+  .chat-toggle{
+    position:fixed; bottom:20px; right:20px; width:54px; height:54px; border-radius:50%;
+    background:var(--accent-strong); border:none; color:#fff; font-size:1.4rem; cursor:pointer;
+    box-shadow:0 6px 18px rgba(124,58,237,.45); z-index:20;
+  }
+  .chat-panel{
+    position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:flex-end; justify-content:center; z-index:30;
+  }
+  .chat-panel.open{display:flex;}
+  .chat-box{
+    width:100%; max-width:460px; background:var(--surface); border-radius:20px 20px 0 0;
+    border:1px solid var(--border); max-height:80vh; display:flex; flex-direction:column; overflow:hidden;
+  }
+  .chat-head{padding:14px 16px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;}
+  .chat-head span{font-weight:600;}
+  .chat-head button{background:none; border:none; color:var(--muted); font-size:1.2rem; cursor:pointer;}
+  .chat-sub{padding:2px 16px 10px; color:var(--muted); font-size:.8rem;}
+  .chat-messages{flex:1; overflow-y:auto; padding:10px 16px; display:flex; flex-direction:column; gap:10px;}
+  .msg{max-width:85%; padding:10px 12px; border-radius:14px; font-size:.87rem; line-height:1.4;}
+  .msg.bot{background:var(--surface-2); align-self:flex-start; border-bottom-left-radius:4px;}
+  .msg.user{background:var(--accent-strong); color:#fff; align-self:flex-end; border-bottom-right-radius:4px;}
+  .msg.error{background:rgba(245,158,11,0.12); border:1px solid var(--warn); color:var(--warn); align-self:flex-start; font-size:.8rem;}
+  .quick-replies{display:flex; flex-wrap:wrap; gap:6px; padding:0 16px 10px;}
+  .quick-replies button{
+    background:var(--surface-2); border:1px solid var(--border); color:var(--text);
+    border-radius:999px; padding:6px 12px; font-size:.76rem; cursor:pointer;
+  }
+  .chat-input{display:flex; gap:8px; padding:12px 16px; border-top:1px solid var(--border);}
+  .chat-input input{
+    flex:1; background:var(--surface-2); border:1px solid var(--border); border-radius:999px;
+    padding:10px 14px; color:var(--text); font-size:.86rem; outline:none;
+  }
+  .chat-input button{
+    width:40px; height:40px; border-radius:50%; border:none; background:var(--accent-strong);
+    color:#fff; font-size:1rem; cursor:pointer; flex-shrink:0;
+  }
+
+  footer{text-align:center; color:var(--muted); font-size:.72rem; margin-top:26px; line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <h1>🤖 Weekly Class Agent</h1>
+    <div class="meta">SJCEM · AIML · SE III-1</div>
+  </header>
+
+  <div class="batch-toggle">
+    <button id="btnB1" onclick="setBatch(1)">Batch 1</button>
+    <button id="btnB2" onclick="setBatch(2)">Batch 2</button>
+  </div>
+
+  <div class="card status-card">
+    <div class="day-label" id="dayLabel">—</div>
+    <div class="clock" id="clock">00:00:00</div>
+    <div id="statusBody"></div>
+  </div>
+
+  <div class="btn-row">
+    <button onclick="scrollToSchedule()">📅 Schedule</button>
+    <button onclick="toggleLabs(true)">🧪 Labs / Tutorials</button>
+    <button onclick="resetAgent()">↺ Reset</button>
+  </div>
+
+  <h2 class="section-title">🔔 Alert Log</h2>
+  <div class="card" id="alertLog">
+    <div class="log-empty">No alerts fired yet.</div>
+  </div>
+
+  <h2 class="section-title" id="schedule">📅 Full Week Schedule</h2>
+  <div id="scheduleList"></div>
+
+  <footer>
+    alerts fire 5 min before each class 💜<br>
+    Version: SJCEM/AIML/Odd/2026-27/III-1 · w.e.f 15 June 2026
+  </footer>
+</div>
+
+<button class="chat-toggle" onclick="toggleChat(true)">💬</button>
+
+<div class="chat-panel" id="chatPanel">
+  <div class="chat-box">
+    <div class="chat-head">
+      <span>💬 Chat with Agent</span>
+      <button onclick="toggleChat(false)">✕</button>
+    </div>
+    <div class="chat-sub">Ask about schedule or anything else</div>
+    <div class="chat-messages" id="chatMessages">
+      <div class="msg bot">Hey! 👋 I know your full timetable (Batch 1 &amp; 2). Ask me anything — "what's my next class?", "do I have labs today?" or just chat! 💜</div>
+    </div>
+    <div class="quick-replies">
+      <button onclick="sendQuick('What is my next class?')">What's my next class?</button>
+      <button onclick="sendQuick('Today full schedule')">Today's full schedule?</button>
+      <button onclick="sendQuick('Do I have labs today?')">Do I have labs today?</button>
+      <button onclick="sendQuick('When is lunch?')">When's lunch?</button>
+      <button onclick="sendQuick('Which day has least classes?')">Least classes?</button>
+      <button onclick="sendQuick('Friday schedule')">Friday schedule?</button>
+    </div>
+    <div class="chat-input">
+      <input id="chatInput" type="text" placeholder="Type a message…" onkeydown="if(event.key==='Enter')sendMessage()">
+      <button onclick="sendMessage()">➤</button>
+    </div>
+  </div>
+</div>
+
+<div class="chat-panel" id="labsPanel">
+  <div class="chat-box">
+    <div class="chat-head">
+      <span>🧪 Labs &amp; Tutorials — Batch <span id="labsBatchLabel">2</span></span>
+      <button onclick="toggleLabs(false)">✕</button>
+    </div>
+    <div class="chat-sub">Only lab &amp; tutorial sessions for the selected batch — switch batches above to update this list</div>
+    <div class="chat-messages" id="labsList"></div>
+  </div>
+</div>
+
+<script>
+/* ===================== TIMETABLE DATA ===================== */
+/* times in 24h "HH:MM". "same" = identical for both batches. Otherwise b1/b2 differ. */
+const TIMETABLE = {
+  Monday: [
+    {start:"09:00", end:"11:00", b1:"DBMS Lab (Autocad) — JT", b2:"PYTHON Lab (SSL2) — TS"},
+    {start:"11:00", end:"12:00", same:"MENTORING"},
+    {start:"13:00", end:"14:00", same:"DS 201 — AB"},
+    {start:"14:00", end:"15:00", same:"DS (SL) 201 — AB"},
+    {start:"15:00", end:"16:00", same:"UHV 202 — OZ"},
+  ],
+  Tuesday: [
+    {start:"09:00", end:"10:00", same:"DBMS 202 — JT"},
+    {start:"10:00", end:"11:00", same:"MCA 202 — S"},
+    {start:"11:00", end:"12:00", same:"UHV 202 — OZ"},
+    {start:"13:00", end:"14:00", same:"DS 202 — AB"},
+    {start:"14:00", end:"16:00", b1:"MCA Lab (SSL2) — S", b2:"DBMS Lab (Autocad) — JT"},
+  ],
+  Wednesday: [
+    {start:"09:00", end:"10:00", same:"DBMS 201 — JT"},
+    {start:"10:00", end:"11:00", b1:"UHV (PV) — Tutorial", b2:"EEP (PP) — Tutorial"},
+    {start:"11:00", end:"12:00", same:"FAI 202 — AS"},
+    {start:"13:00", end:"14:00", same:"MCA 202 — S"},
+    {start:"14:00", end:"15:00", same:"LAOAI (DP) — Tutorial"},
+    {start:"15:00", end:"16:00", same:"FAI 202 — AS"},
+  ],
+  Thursday: [
+    {start:"09:00", end:"10:00", same:"MCA 201 — S"},
+    {start:"10:00", end:"11:00", same:"DS 201 — AB"},
+    {start:"11:00", end:"12:00", same:"LAOIA 201 — DP"},
+    {start:"13:00", end:"14:00", same:"FAI (SL) 202 — AS"},
+    {start:"14:00", end:"16:00", b1:"PYTHON Lab (SSL2) — TS", b2:"DS Lab (Autocad) — AB"},
+  ],
+  Friday: [
+    {start:"09:00", end:"11:00", b1:"DS Lab (Autocad) — JT", b2:"MCA Lab (SSL2) — S"},
+    {start:"11:00", end:"12:00", same:"LAOIA 201 — DP"},
+    {start:"13:00", end:"14:00", same:"PYTHON 202 — TS"},
+    {start:"14:00", end:"15:00", b1:"EEP (PP) — Tutorial", b2:"UHV (PV) — Tutorial"},
+    {start:"15:00", end:"16:00", same:"DBMS (SL) 202 — JT"},
+  ],
+  Saturday: [],
+  Sunday: [],
+};
+
+const DAY_NAMES = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+
+/* ===================== STATE ===================== */
+let batch = Number(localStorage.getItem('agent_batch') || 2);
+let alertLog = [];
+let firedKeys = new Set();
+
+function subjFor(period){
+  if(period.same) return period.same;
+  return batch === 1 ? period.b1 : period.b2;
+}
+
+function toMinutes(hhmm){
+  const [h,m] = hhmm.split(":").map(Number);
+  return h*60+m;
+}
+
+function now(){
+  return new Date();
+}
+
+/* ===================== RENDER: BATCH TOGGLE ===================== */
+function setBatch(b){
+  batch = b;
+  localStorage.setItem('agent_batch', b);
+  document.getElementById('btnB1').classList.toggle('active', b===1);
+  document.getElementById('btnB2').classList.toggle('active', b===2);
+  renderSchedule();
+  tick();
+  if(document.getElementById('labsPanel').classList.contains('open')){
+    renderLabsPanel();
+  }
+}
+
+/* ===================== RENDER: STATUS CARD ===================== */
+function tick(){
+  const t = now();
+  const dayName = DAY_NAMES[t.getDay()];
+  document.getElementById('clock').textContent = t.toLocaleTimeString('en-GB', {hour12:false});
+  document.getElementById('dayLabel').textContent = `${dayName} · Batch ${batch}`;
+
+  const periods = TIMETABLE[dayName] || [];
+  const mins = t.getHours()*60 + t.getMinutes();
+
+  let current = null, next = null;
+  for(const p of periods){
+    const s = toMinutes(p.start), e = toMinutes(p.end);
+    if(mins >= s && mins < e) current = p;
+    if(mins < s && !next) next = p;
+  }
+
+  const body = document.getElementById('statusBody');
+  if(!periods.length){
+    body.innerHTML = `<div class="weekend">🎉 No Classes!</div><div class="now-label">Enjoy your day 💜</div>`;
+  } else if(current){
+    body.innerHTML = `
+      <div class="now-label"><span class="live-dot"></span>Ongoing</div>
+      <div class="now-value">${subjFor(current)}</div>
+      <div class="now-value" style="font-size:.85rem;color:var(--muted)">${current.start}–${current.end}</div>
+      ${next ? `<div class="next-value">Next: ${subjFor(next)} at ${next.start}</div>` : `<div class="next-value">No more classes today 🎉</div>`}
+    `;
+    checkAlert(current, mins, toMinutes(current.start));
+  } else if(next){
+    body.innerHTML = `
+      <div class="now-label">Up Next</div>
+      <div class="now-value">${subjFor(next)}</div>
+      <div class="next-value">Starts at ${next.start}</div>
+    `;
+    checkAlert(next, mins, toMinutes(next.start));
+  } else {
+    body.innerHTML = `<div class="weekend">🎉 Done for today!</div><div class="now-label">No more classes 💜</div>`;
+  }
+
+  renderSchedule(current, next, dayName);
+}
+
+function checkAlert(period, nowMins, startMins){
+  const diff = startMins - nowMins;
+  const key = `${period.start}-${period.end}-${subjFor(period)}`;
+  if(diff === 5 && !firedKeys.has(key)){
+    firedKeys.add(key);
+    logAlert(`⏰ 5 min to ${subjFor(period)} (${period.start})`);
+  }
+}
+
+function logAlert(text){
+  alertLog.unshift({text, time: now().toLocaleTimeString('en-GB',{hour12:false})});
+  renderLog();
+}
+
+function renderLog(){
+  const el = document.getElementById('alertLog');
+  if(!alertLog.length){
+    el.innerHTML = `<div class="log-empty">No alerts fired yet.</div>`;
+    return;
+  }
+  el.innerHTML = alertLog.map(a => `<div class="log-item">${a.time} — ${a.text}</div>`).join("");
+}
+
+/* ===================== RENDER: WEEKLY SCHEDULE ===================== */
+function renderSchedule(current, next, todayName){
+  const el = document.getElementById('scheduleList');
+  const order = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  el.innerHTML = order.map(day => {
+    const periods = TIMETABLE[day];
+    let rows;
+    if(!periods.length){
+      rows = `<div class="no-classes">No classes 🎉</div>`;
+    } else {
+      rows = periods.map(p => {
+        const isCurrent = current && todayName===day && p.start===current.start && p.end===current.end;
+        const isNext = next && todayName===day && p.start===next.start && p.end===next.end;
+        const cls = isCurrent ? "current" : (isNext ? "next" : "");
+        if(p.same){
+          return `<div class="period ${cls}">
+            <div class="time">${p.start} – ${p.end}</div>
+            <div class="subj">${p.same}</div>
+          </div>`;
+        }
+        return `<div class="period ${cls}">
+          <div class="time">${p.start} – ${p.end}</div>
+          <div class="split">
+            <div><b>B1</b> ${p.b1}</div>
+            <div><b>B2</b> ${p.b2}</div>
+          </div>
+        </div>`;
+      }).join("");
+    }
+    return `<div class="day-block"><div class="day-name">${day}${day===todayName ? " · Today" : ""}</div>${rows}</div>`;
+  }).join("");
+}
+
+function scrollToSchedule(){
+  document.getElementById('schedule').scrollIntoView({behavior:"smooth"});
+}
+
+/* ===================== LABS / TUTORIALS (per selected batch only) ===================== */
+function toggleLabs(open){
+  document.getElementById('labsPanel').classList.toggle('open', open);
+  if(open) renderLabsPanel();
+}
+
+function renderLabsPanel(){
+  document.getElementById('labsBatchLabel').textContent = batch;
+  const order = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  const el = document.getElementById('labsList');
+  let html = "";
+  order.forEach(day => {
+    const periods = (TIMETABLE[day] || []).filter(p => /lab|tutorial/i.test(subjFor(p)));
+    if(!periods.length) return;
+    html += `<div class="day-name" style="margin:4px 2px;">${day}</div>`;
+    periods.forEach(p => {
+      const label = subjFor(p);
+      const type = /lab/i.test(label) ? "🧪 Lab" : "📝 Tutorial";
+      html += `<div class="period">
+        <div class="time">${p.start} – ${p.end}</div>
+        <div class="subj">${type}: ${label}</div>
+      </div>`;
+    });
+  });
+  el.innerHTML = html || `<div class="no-classes">No labs or tutorials found for Batch ${batch}.</div>`;
+}
+
+function resetAgent(){
+  alertLog = [];
+  firedKeys = new Set();
+  renderLog();
+  tick();
+}
+
+/* ===================== CHAT ===================== */
+function toggleChat(open){
+  document.getElementById('chatPanel').classList.toggle('open', open);
+}
+
+function addMsg(text, cls){
+  const box = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = `msg ${cls}`;
+  div.textContent = text;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+function sendQuick(text){
+  document.getElementById('chatInput').value = text;
+  sendMessage();
+}
+
+function sendMessage(){
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if(!text) return;
+  addMsg(text, "user");
+  input.value = "";
+  const reply = localAnswer(text);
+  if(reply){
+    setTimeout(() => addMsg(reply, "bot"), 300);
+  } else {
+    // Falls through to the AI assistant for anything the local rules can't handle
+    askAI(text);
+  }
+}
+
+function localAnswer(raw){
+  const q = raw.toLowerCase();
+  const t = now();
+  const dayName = DAY_NAMES[t.getDay()];
+  const mins = t.getHours()*60 + t.getMinutes();
+  const periods = TIMETABLE[dayName] || [];
+
+  if(q.includes("next class")){
+    const next = periods.find(p => toMinutes(p.start) > mins);
+    if(!periods.length) return "No classes today — enjoy your day! 🎉";
+    return next ? `Next up: ${subjFor(next)} at ${next.start} (Batch ${batch}) 💜` : "No more classes today! 🎉";
+  }
+  if(q.includes("full schedule") || q.includes("today")){
+    if(!periods.length) return `No classes today (${dayName}) 🎉`;
+    return `${dayName}'s schedule (Batch ${batch}):\n` + periods.map(p => `${p.start}-${p.end}: ${subjFor(p)}`).join("\n");
+  }
+  if(q.includes("lab") || q.includes("tutorial")){
+    const matches = periods.filter(p => /lab|tutorial/i.test(subjFor(p)));
+    return matches.length ? `Yes! Today (Batch ${batch}): ${matches.map(p=>subjFor(p)).join(", ")}` : "No labs or tutorials today 🙌";
+  }
+  if(q.includes("lunch")){
+    return "Lunch break is 12:00–1:00 pm every day 🍽️";
+  }
+  if(q.includes("least classes")){
+    return "Monday & Friday have the lightest academic load (with one 2-hr lab + a few lectures). Saturday has none!";
+  }
+  if(q.includes("friday")){
+    const p = TIMETABLE.Friday;
+    return `Friday (Batch ${batch}):\n` + p.map(x => `${x.start}-${x.end}: ${subjFor(x)}`).join("\n");
+  }
+  return null;
+}
+
+/* Attempts to call the Anthropic API directly from the browser for anything
+   outside the quick local rules. Note: browser-side calls to api.anthropic.com
+   are blocked by CORS without a backend proxy — this is expected to fail
+   until a small serverless proxy is added. */
+async function askAI(userText){
+  addMsg("Thinking…", "bot");
+  const box = document.getElementById('chatMessages');
+  try{
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 300,
+        messages: [{ role: "user", content: userText }]
+      })
+    });
+    const data = await response.json();
+    box.lastChild.remove();
+    const text = data?.content?.map(c => c.text).filter(Boolean).join("\n") || "Hmm, I couldn't get a response.";
+    addMsg(text, "bot");
+  } catch(err){
+    box.lastChild.remove();
+    addMsg("⚠️ AI chat is still being wired up — quick-reply buttons work great in the meantime!", "error");
+  }
+}
+
+/* ===================== INIT ===================== */
+setBatch(batch);
+tick();
+setInterval(tick, 1000);
+</script>
+</body>
+</html>
